@@ -98,7 +98,7 @@ const ProductPage = () => {
                 src={product.image}
                 alt={product.name}
                 className="max-h-full max-w-full object-contain p-4"
-                onError={(e) => { e.target.src = 'https://via.placeholder.com/400?text=No+Image'; }}
+                onError={(e) => { e.target.src = 'https://placehold.co/400?text=No+Image'; }}
               />
             </div>
           </div>

@@ -153,7 +153,7 @@ const CheckoutPage = () => {
                       <div key={item._id} className="flex items-center gap-3 py-2">
                         <img src={item.image} alt={item.name}
                           className="w-12 h-12 object-contain bg-gray-50 rounded"
-                          onError={(e) => { e.target.src = 'https://via.placeholder.com/50'; }} />
+                          onError={(e) => { e.target.src = 'https://placehold.co/50'; }} />
                         <span className="flex-1 text-sm text-gray-800">{item.name} × {item.qty}</span>
                         <span className="font-medium">${(item.price * item.qty).toFixed(2)}</span>
                       </div>

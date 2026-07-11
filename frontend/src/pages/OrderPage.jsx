@@ -123,7 +123,7 @@ const OrderPage = () => {
             <div key={i} className="flex items-center gap-4 py-3">
               <img src={item.image} alt={item.name}
                 className="w-14 h-14 object-contain bg-gray-50 rounded"
-                onError={(e) => { e.target.src = 'https://via.placeholder.com/56'; }} />
+                onError={(e) => { e.target.src = 'https://placehold.co/56'; }} />
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900 line-clamp-2">{item.name}</p>
                 <p className="text-xs text-gray-500 mt-0.5">Qty: {item.qty} × ${item.price?.toFixed(2)}</p>

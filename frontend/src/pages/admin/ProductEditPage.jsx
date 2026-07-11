@@ -98,7 +98,7 @@ const ProductEditPage = () => {
             {image ? (
               <img src={image} alt="preview"
                 className="w-28 h-28 object-contain bg-gray-50 rounded-lg border"
-                onError={(e) => { e.target.src = 'https://via.placeholder.com/112'; }} />
+                onError={(e) => { e.target.src = 'https://placehold.co/112'; }} />
             ) : (
               <div className="w-28 h-28 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
                 <FiUpload className="text-gray-400 text-2xl" />

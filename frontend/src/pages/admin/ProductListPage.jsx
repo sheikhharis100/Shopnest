@@ -82,7 +82,7 @@ const ProductListPage = () => {
                       <div className="flex items-center gap-3">
                         <img src={product.image} alt={product.name}
                           className="w-10 h-10 object-contain bg-gray-50 rounded border"
-                          onError={(e) => { e.target.src = 'https://via.placeholder.com/40'; }} />
+                          onError={(e) => { e.target.src = 'https://placehold.co/40'; }} />
                         <div>
                           <p className="font-medium text-gray-900 line-clamp-1">{product.name}</p>
                           <p className="text-xs text-gray-500">{product.brand}</p>

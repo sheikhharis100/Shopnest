@@ -43,7 +43,7 @@ const CartPage = () => {
                     onClick={() => navigate(`/product/${item._id}`)}>
                     <img src={item.image} alt={item.name}
                       className="w-full h-full object-contain p-1"
-                      onError={(e) => { e.target.src = 'https://via.placeholder.com/100'; }} />
+                      onError={(e) => { e.target.src = 'https://placehold.co/100'; }} />
                   </div>
 
                   {/* Info */}
