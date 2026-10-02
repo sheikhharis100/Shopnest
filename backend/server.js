@@ -16,7 +16,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.get('/', (req, res) => res.send('ShopNest API is running...'));
+// Seeding deletes every user and product, so this is deny-by-default: it stays
+// shut unless ALLOW_SEED is explicitly "true". Keying it off NODE_ENV would be
+// unsafe, since not every host sets that variable.
+const seedingAllowed = () => process.env.ALLOW_SEED === 'true';
+
 app.get('/api/seed', async (req, res) => {
+  if (!seedingAllowed()) {
+    return res.status(403).json({ message: 'Seeding is disabled' });
+  }
   try {
     await Product.deleteMany();
     await User.deleteMany();
@@ -48,5 +56,22 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/users', userRoutes);
+app.use((req, res) => {
+  res.status(404).json({ message: `Not found - ${req.originalUrl}` });
+});
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  // A malformed :id reaches Mongoose as a CastError - that's a bad request,
+  // not a server fault, and the stack trace shouldn't leak to the client.
+  const isBadId = err.name === 'CastError' && err.kind === 'ObjectId';
+  const status = isBadId ? 400 : res.statusCode !== 200 ? res.statusCode : 500;
+  if (!isBadId) console.error(err);
+  res.status(status).json({
+    message: isBadId ? 'Invalid id' : err.message || 'Server error',
+    ...(process.env.NODE_ENV === 'production' ? {} : { stack: err.stack }),
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

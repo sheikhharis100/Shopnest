@@ -3,7 +3,9 @@ import Order from '../models/Order.js';
 import User from '../models/User.js';
 
 export const getProducts = async (req, res) => {
-  const pageSize = 12;
+  // The admin list asks for ?limit=100; cap it so the endpoint can't be
+  // used to pull the whole collection in one request.
+  const pageSize = Math.min(Number(req.query.limit) || 12, 100);
   const page = Number(req.query.page) || 1;
   const keyword = req.query.keyword
     ? { name: { $regex: req.query.keyword, $options: 'i' } } : {};

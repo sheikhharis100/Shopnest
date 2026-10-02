@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/ToastContext.js';
+import { saveShippingAddress } from '../redux/slices/cartSlice.js';
 import { FiCheck, FiMapPin, FiCreditCard, FiShoppingBag } from 'react-icons/fi';
 
 const STEPS = ['Shipping', 'Payment', 'Review & Place'];
@@ -17,6 +18,7 @@ const CheckoutPage = () => {
   const { cartItems } = useSelector((state) => state.cart);
   const { userInfo } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const toast = useToast();
 
   const itemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
@@ -33,6 +35,13 @@ const CheckoutPage = () => {
       return;
     }
     setStep(s => s + 1);
+  };
+
+  // Persist what the shopper entered so the payment step charges the right
+  // address, totals and method instead of falling back to hardcoded values.
+  const handlePlaceOrder = () => {
+    dispatch(saveShippingAddress({ address, city, postalCode, country, paymentMethod }));
+    navigate('/payment');
   };
 
   const StepIcon = [FiMapPin, FiCreditCard, FiShoppingBag][step];
@@ -173,7 +182,7 @@ const CheckoutPage = () => {
               {step < STEPS.length - 1 ? (
                 <button onClick={handleNext} className="btn-orange px-8">Continue →</button>
               ) : (
-                <button onClick={() => navigate('/payment')}
+                <button onClick={handlePlaceOrder}
                   className="btn-orange px-8 py-3 text-base font-semibold">
                   🔒 Proceed to Payment
                 </button>

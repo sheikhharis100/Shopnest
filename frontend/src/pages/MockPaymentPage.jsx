@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { clearCart } from '../redux/slices/cartSlice';
 import api from '../utils/api';
@@ -7,7 +7,7 @@ import api from '../utils/api';
 const MockPaymentPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { cartItems } = useSelector((state) => state.cart);
+  const { cartItems, shippingAddress } = useSelector((state) => state.cart);
 
   const [cardName, setCardName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
@@ -15,10 +15,16 @@ const MockPaymentPage = () => {
   const [cvv, setCvv] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Paying empties the cart, which would otherwise trip the guard below and
+  // bounce the shopper to /cart before the order page can load.
+  const [settled, setSettled] = useState(false);
 
-  const totalPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0).toFixed(2);
-  const tax = (totalPrice * 0.1).toFixed(2);
-  const grandTotal = (parseFloat(totalPrice) + parseFloat(tax)).toFixed(2);
+  // These rules must stay in step with CheckoutPage, otherwise the shopper is
+  // quoted one total on the review step and charged another here.
+  const itemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+  const shippingPrice = itemsPrice > 100 ? 0 : 9.99;
+  const taxPrice = itemsPrice * 0.08;
+  const totalPrice = (itemsPrice + shippingPrice + taxPrice).toFixed(2);
 
   const formatCardNumber = (value) => {
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
@@ -36,6 +42,11 @@ const MockPaymentPage = () => {
     if (v.length >= 2) return v.substring(0, 2) + '/' + v.substring(2, 4);
     return v;
   };
+
+  // Reached directly without completing checkout: there is no address to ship
+  // to, and the order would fail server-side validation.
+  if (!settled && cartItems.length === 0) return <Navigate to="/cart" replace />;
+  if (!settled && !shippingAddress?.address) return <Navigate to="/checkout" replace />;
 
   const handlePayment = async (e) => {
     e.preventDefault();
@@ -65,21 +76,29 @@ const MockPaymentPage = () => {
           product: item._id,
         })),
         shippingAddress: {
-          address: '123 Main St',
-          city: 'Karachi',
-          postalCode: '75000',
-          country: 'Pakistan',
+          address: shippingAddress.address,
+          city: shippingAddress.city,
+          postalCode: shippingAddress.postalCode,
+          country: shippingAddress.country,
         },
-        paymentMethod: 'Mock Card Payment',
-        itemsPrice: totalPrice,
-        taxPrice: tax,
-        shippingPrice: 0,
-        totalPrice: grandTotal,
-        isPaid: true,
-        paidAt: new Date(),
+        paymentMethod: shippingAddress.paymentMethod || 'Mock Card Payment',
+        itemsPrice: Number(itemsPrice.toFixed(2)),
+        taxPrice: Number(taxPrice.toFixed(2)),
+        shippingPrice,
+        totalPrice: Number(totalPrice),
       };
 
       const { data } = await api.post('/orders', orderData);
+
+      // The create-order endpoint ignores client-supplied isPaid, so settle the
+      // payment through the endpoint that actually records it.
+      await api.put(`/orders/${data._id}/pay`, {
+        id: `mock_${Date.now()}`,
+        status: 'COMPLETED',
+        update_time: new Date().toISOString(),
+      });
+
+      setSettled(true);
       dispatch(clearCart());
       navigate(`/order/${data._id}`);
     } catch {
@@ -180,7 +199,7 @@ const MockPaymentPage = () => {
                   Processing Payment...
                 </>
               ) : (
-                <>🔒 Pay ${grandTotal}</>
+                <>🔒 Pay ${totalPrice}</>
               )}
             </button>
 
@@ -208,19 +227,21 @@ const MockPaymentPage = () => {
           <div className="border-t pt-4 space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
               <span>Subtotal</span>
-              <span>${totalPrice}</span>
+              <span>${itemsPrice.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm text-gray-600">
               <span>Shipping</span>
-              <span className="text-green-600 font-medium">FREE</span>
+              {shippingPrice === 0
+                ? <span className="text-green-600 font-medium">FREE</span>
+                : <span>${shippingPrice.toFixed(2)}</span>}
             </div>
             <div className="flex justify-between text-sm text-gray-600">
-              <span>Tax (10%)</span>
-              <span>${tax}</span>
+              <span>Tax (8%)</span>
+              <span>${taxPrice.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-lg font-bold text-gray-800 border-t pt-3 mt-2">
               <span>Total</span>
-              <span>${grandTotal}</span>
+              <span>${totalPrice}</span>
             </div>
           </div>
         </div>
