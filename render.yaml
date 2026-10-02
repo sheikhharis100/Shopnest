@@ -15,6 +15,9 @@ services:
         value: "22"
       - key: MONGO_URI
         sync: false
+      # Lock CORS to the deployed frontend origin
+      - key: CLIENT_URL
+        value: https://shopnest-five-umber.vercel.app
       - key: JWT_SECRET
         generateValue: true
       - key: CLOUDINARY_CLOUD_NAME

@@ -87,6 +87,7 @@ cp .env.example .env
 | `MONGO_URI` | yes | Connection string, e.g. `mongodb://127.0.0.1:27017/shopnest` |
 | `JWT_SECRET` | yes | Any long random string |
 | `PORT` | no | Defaults to `5000` |
+| `CLIENT_URL` | no | Comma-separated list of allowed browser origins. Left unset, CORS stays open — set it on any deployed environment. |
 | `CLOUDINARY_CLOUD_NAME` | no | Needed only for image uploads |
 | `CLOUDINARY_API_KEY` | no | Needed only for image uploads |
 | `CLOUDINARY_API_SECRET` | no | Needed only for image uploads |
@@ -250,8 +251,16 @@ Render injects its own `PORT`, which `server.js` already reads. Leave `ALLOW_SEE
 
 ---
 
+## Security
+
+- **Seeding is deny-by-default.** `GET /api/seed` wipes all users and products, so it returns 403 unless `ALLOW_SEED=true`.
+- **Orders are owner-scoped.** Reading or paying an order requires being the buyer or an admin; anyone else gets a 403. An order cannot be paid twice.
+- **Tokens are checked against live accounts.** A token belonging to a deleted user is rejected with 401.
+- **CORS is allowlisted** when `CLIENT_URL` is set, and open otherwise so local development and tooling work unchanged.
+- **Auth routes are rate limited** to 50 attempts per IP per 15 minutes.
+
 ## Notes and limitations
 
-- **Payment is simulated.** The checkout collects card details, discards them, and marks the order paid. No real payment processor is wired up, so do not enter real card numbers.
-- **CORS is fully open** (`app.use(cors())`). Restrict it to your frontend origin before running this anywhere real.
-- There is no rate limiting on the auth routes.
+- **Payment is simulated.** The checkout collects card details, discards them, and marks the order paid through `PUT /orders/:id/pay`. No real payment processor is wired up, so do not enter real card numbers. Because the client drives that endpoint, a determined user could mark their own order paid without paying — fine for a demo, not for real money.
+- Product images are hotlinked from Unsplash, so they depend on that service staying up.
+- The admin product list loads up to 100 products in one request and has no pagination UI.

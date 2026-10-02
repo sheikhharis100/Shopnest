@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
@@ -13,8 +14,40 @@ import bcrypt from 'bcryptjs';
 dotenv.config();
 connectDB();
 const app = express();
-app.use(cors());
+// Render and other proxies sit in front of the app; without this the rate
+// limiter sees the proxy's IP for every request instead of the caller's.
+app.set('trust proxy', 1);
+
+// CLIENT_URL takes a comma-separated list of allowed origins. Left unset it
+// stays permissive, which is what local development and tooling expect.
+const allowedOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+app.use(cors(
+  allowedOrigins.length
+    ? {
+        origin: (origin, cb) =>
+          // no Origin header = curl, server-to-server, same-origin
+          !origin || allowedOrigins.includes(origin)
+            ? cb(null, true)
+            : cb(new Error('Not allowed by CORS')),
+        credentials: true,
+      }
+    : {}
+));
 app.use(express.json());
+
+// Credential endpoints are the ones worth brute-forcing, so they get a
+// tighter budget than the rest of the API.
+app.use('/api/auth', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many attempts, please try again later' },
+}));
 app.get('/', (req, res) => res.send('ShopNest API is running...'));
 // Seeding deletes every user and product, so this is deny-by-default: it stays
 // shut unless ALLOW_SEED is explicitly "true". Keying it off NODE_ENV would be
